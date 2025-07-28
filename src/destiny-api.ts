@@ -1,17 +1,14 @@
 import axios, { AxiosInstance } from 'axios';
-import { BungieAuth } from './auth.js';
 import { BungieConfig, DestinyProfile, DestinyCharacter, DestinyItem } from './types.js';
 import { RateLimiter } from './rate-limiter.js';
 
 export class DestinyAPI {
-  private auth: BungieAuth;
   private client: AxiosInstance;
   private config: BungieConfig;
   private rateLimiter: RateLimiter;
 
   constructor(config: BungieConfig) {
     this.config = config;
-    this.auth = new BungieAuth(config);
     this.rateLimiter = new RateLimiter(25, 10000);
     this.client = axios.create({
       baseURL: config.baseUrl || 'https://www.bungie.net/Platform',
@@ -21,26 +18,11 @@ export class DestinyAPI {
     });
   }
 
-  private async makeRequest(url: string, params?: any, requireAuth: boolean = false) {
+  private async makePublicRequest(url: string, params?: any) {
     await this.rateLimiter.checkLimit();
-    
-    const headers: Record<string, string> = {};
-    
-    if (requireAuth) {
-      const accessToken = this.auth.getAccessToken();
-      
-      if (!accessToken || this.auth.isTokenExpired()) {
-        throw new Error('No valid access token available. Please authenticate first.');
-      }
-      
-      headers['Authorization'] = `Bearer ${accessToken}`;
-    }
 
     try {
-      const response = await this.client.get(url, {
-        params,
-        headers
-      });
+      const response = await this.client.get(url, { params });
 
       if (response.data.ErrorCode !== 1) {
         throw new Error(`Bungie API Error: ${response.data.Message}`);
@@ -50,9 +32,7 @@ export class DestinyAPI {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
-        if (status === 401) {
-          throw new Error('Authentication failed. Token may be expired or invalid.');
-        } else if (status === 429) {
+        if (status === 429) {
           throw new Error('Rate limit exceeded. Please wait before making more requests.');
         } else if (status && status >= 500) {
           throw new Error('Bungie API server error. Please try again later.');
@@ -60,14 +40,6 @@ export class DestinyAPI {
       }
       throw error;
     }
-  }
-
-  private async makeAuthenticatedRequest(url: string, params?: any) {
-    return this.makeRequest(url, params, true);
-  }
-
-  private async makePublicRequest(url: string, params?: any) {
-    return this.makeRequest(url, params, false);
   }
 
   async getProfile(
@@ -247,9 +219,5 @@ export class DestinyAPI {
     return this.makePublicRequest(
       `/Destiny2/Stats/PostGameCarnageReport/${activityId}/`
     );
-  }
-
-  getAuth(): BungieAuth {
-    return this.auth;
   }
 }

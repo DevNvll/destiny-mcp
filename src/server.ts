@@ -29,8 +29,6 @@ export function createMCPServer() {
 
   const config: BungieConfig = {
     apiKey: process.env.BUNGIE_API_KEY || '',
-    clientId: '', // Not needed for public API access
-    clientSecret: '', // Not needed for public API access
     baseUrl: 'https://www.bungie.net/Platform'
   };
 

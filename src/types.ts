@@ -1,16 +1,6 @@
 export interface BungieConfig {
   apiKey: string;
-  clientId: string;
-  clientSecret: string;
   baseUrl: string;
-}
-
-export interface OAuthTokens {
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
-  token_type: string;
-  membership_id: string;
 }
 
 export interface DestinyProfile {
